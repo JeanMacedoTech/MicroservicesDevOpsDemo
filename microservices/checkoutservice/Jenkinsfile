@@ -1,0 +1,121 @@
+pipeline {
+    agent any
+
+    environment {
+        S3_BUCKET = 'artifactory-s3-bucket'
+        ECR_REGISTRY = 'ecr-registry'
+    }
+
+    stages {
+        stage('Checkout Branch') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: 'master']], userRemoteConfigs: [[url: 'https://github.com/JeanMacedoTech/MicroservicesDevOpsDemo']])
+            }
+        }
+
+        stage('Increment Application Version') {
+            steps {
+                script {
+                    def goMod = 'go.mod'
+
+                    // Reading the current version from the go.mod file
+                    def currentVersion = readFile(goMod).readLines().find { it =~ /<Version>.*<\/Version>/ }
+                    def versionPattern = /<Version>(.*?)<\/Version>/
+                    def currentVersionMatch = currentVersion =~ versionPattern
+                    def currentVersionValue = currentVersionMatch[0][1]
+
+                    // Incrementing the version
+                    def versionParts = currentVersionValue.split('.')
+                    def patchVersion = versionParts[2].toInteger()
+                    patchVersion += 1
+
+                    // Building the new version
+                    def newVersion = "${versionParts[0]}.${versionParts[1]}.${patchVersion}"
+
+                    // Updating the version in the go.mod file
+                    sh "sed -i 's|<Version>${currentVersionValue}</Version>|<Version>${newVersion}</Version>|' $goMod"
+                    echo "New version successfully incremented! Current version is now ${newVersion}"
+                }
+            }
+        }
+
+        stage('Build Application Package') {
+            steps {
+                sh 'go build -o checkoutserviceapp'
+            }
+        }
+
+        stage('Testing') {
+            steps {
+                // This is a generic test stage.
+                sh 'go test ./' 
+            }
+        }
+
+        stage('Push App Artifact to S3 Bucket') {
+            steps {
+                script {
+                    def s3Bucket = env.S3_BUCKET
+                    def artifactPath = 'checkoutserviceapp.*'
+                    sh "aws s3 cp ${artifactPath} s3://${s3Bucket}/"
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    def dockerfile = 'Dockerfile'
+                    def dockerImageName = 'checkoutservice'
+                    def dockerImageTag = "${newVersion}"
+
+                    sh "docker build -t ${dockerImageName}:${dockerImageTag} -f ${dockerfile}"
+                }
+            }
+        }
+
+        stage('Push Docker Image to ECR Registry') {
+            steps {
+                script {
+                    def ecrRepositoryUrl = "123456789012.dkr.ecr.region.amazonaws.com/${env.ECR_REGISTRY}"
+
+                    sh "docker tag checkoutservice:${newVersion} ${ecrRepositoryUrl}:latest"
+                    sh "aws ecr get-login-password --region region | docker login --username AWS --password-stdin ${ecrRepositoryUrl}"
+
+                    // Pushing to ECR repository
+                    sh "docker push ${ecrRepositoryUrl}:latest"
+                }
+            }
+        }
+
+        stage('Update K8s Manifest') {
+            steps {
+                script {
+                    def k8sManifestFile = 'k8s-manifests/checkoutservice.yaml'
+
+                    // Replacing K8s manifest placeholder tag with the new image tag
+                    sh "sed -i 's|{{IMAGE_TAG}}|${newVersion}|' $k8sManifestFile"
+                    echo "Kubernetes manifest updated with the new image tag: ${newVersion}"
+                }
+            }
+        }
+
+        stage('Apply updated K8s Manifest') {
+            steps {
+                script {
+                    sh "kubectl apply -f k8s-manifests/checkoutservice.yaml"
+                }
+            }
+        }
+
+        stage('Commit version bump for the microservice back to GitHub') {
+            steps {
+                script {
+                    sh "git add ."
+                    sh "git commit -m 'Bumped version to ${newVersion}'"
+                    sh "git push origin master"
+                }
+            }
+        }
+    }
+}

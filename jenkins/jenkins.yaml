@@ -1,0 +1,84 @@
+unclassified:
+  jenkins:
+    systemMessage: "Welcome to CI/CD Pipeline, DevOps Demo Project by Jean Macedo."
+    numExecutors: 2
+
+    location:
+      url: http://jenkins-url:8080/jenkins
+    scmCheckoutRetryCount: 2
+
+  tools:
+    dockerTool:
+      installations:
+        - name: "Docker"
+          home: "/usr/bin/docker"
+
+    maven.MavenInstallation:
+      installations:
+        - name: "Maven"
+          properties:
+            - installSource:
+                installers:
+                  - maven:
+                      id: "3.8.3"
+
+    hudson.plugins.tools.InstallSourceProperty:
+      installers:
+        - hudson.plugins.tools.ZipExtractionInstaller:
+            id: "Python3.9"
+            name: "Python 3.9"
+            home: "/usr/local/bin"
+            url: "https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tgz"
+
+    hudson.plugins.msbuild.MsBuildInstallation:
+      installations:
+        - name: "MSBuild"
+          home: "/usr/bin/msbuild"
+    
+    hudson.plugins.go.GolangInstallation:
+      installations:
+        - name: "Go"
+          home: "/usr/local/go"
+
+    hudson.model.JDK:
+      installations:
+        - name: "Java8"
+          home: "/usr/lib/jvm/java-8-openjdk-amd64"
+        - name: "Java11"
+          home: "/usr/lib/jvm/java-11-openjdk-amd64"
+
+    jenkins.plugins.nodejs.tools.NodeJSInstallation:
+      installations:
+        - name: "NodeJS"
+          home: "/usr/local/bin/node"
+
+    io.fabric8.jenkins.openshiftsync.GlobalPluginConfiguration:
+      kubectlPath: "/usr/bin/kubectl"
+
+    awsCLI:
+      installations:
+        - name: "AWS CLI"
+          home: "/usr/bin/aws"
+
+  credentials:
+    system:
+      domainCredentials:
+        - credentials:
+            - secretText:
+                scope: SYSTEM
+                id: my-aws-credentials
+
+  plugins:
+    - id: "terraform"
+      version: "2.0.0"
+
+    - id: "terraform-builder"
+      version: "1.0.0"
+
+  unclassified:
+    com.cloudbees.jenkins.plugins.github_branch_source.GitHubConfiguration:
+      configs:
+        - server: "github.com"
+          manageHooks: false
+          repoOwner: "JeanMacedoTech"
+          scanCredentialsId: "my-aws-credentials"

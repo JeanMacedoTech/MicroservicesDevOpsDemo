@@ -1,0 +1,43 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: my-eks-cluster
+  region: sa-east-1
+
+vpc:
+  subnets:
+    public:
+      sa-east-1a: {}
+      sa-east-1b: {}
+
+nodeGroups:
+  - name: standard-workers
+    desiredCapacity: 2
+    minSize: 2
+    maxSize: 3
+    instanceType: t3.medium
+
+    privateNetworking: true
+
+    labels:
+      role: worker
+
+    tags:
+      nodegroup: standard-workers
+
+    taints:
+      - key: "key"
+        value: "value"
+        effect: "NoSchedule"
+
+    kubeletExtraArgs:
+      node-labels: "role=worker"
+
+    ssh:
+      sourceSecurityGroup: "198.162.0.10/32"
+
+    preBootstrapCommands:
+        - "yum install -y kubectl"
+
+    kubernetesVersion: "latest"
