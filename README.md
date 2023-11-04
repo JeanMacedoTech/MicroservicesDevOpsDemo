@@ -146,6 +146,16 @@ stage('Apply updated K8s Manifest') {
 ```
 The same structure is used for all microservices, where we edit the stages accordingly, depending on the applications programming language. 
 
-The pipeline is designed to be repeatable and easy to deploy.
+The pipeline is designed to be repeatable and easy to deploy, no matter the OS for the Jenkins server. With that in mind, inside the **EKS** folder, I've included basic Shell Scripts to get eksctl ready in Windows, Mac or Linux. We setup the Jenkins server in the preferred OS using the provided jenkins.yaml configuration file, use one of the Shell scripts to get eksctl available, and off we go!
+
+```shell
+# Installing eksctl
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64" > eksctl
+chmod +x eksctl
+sudo mv eksctl /usr/local/bin
+
+# Creating eksctl cluster with pre-configured yaml
+eksctl create cluster -f eks-settings.yaml
+```
 
 
