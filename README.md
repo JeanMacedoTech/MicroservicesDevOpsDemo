@@ -26,7 +26,7 @@ resource "aws_ecr_repository" "ecr_repo" {
   name = "ecr-repo"
 }
 ```
-3) Build a Jenkins configuration file (see jenkins/jenkins.yaml) to document the necessary Jenkins plugins for the Jenkins server. We can then use the Configuration as Code Jenkins plugin for easier setup.
+3) Build a **Jenkins configuration file** (see jenkins/jenkins.yaml) to document the necessary Jenkins plugins for the Jenkins server. We can then use the Configuration as Code Jenkins plugin for easier setup.
 
 4) Create Jenkinsfiles for each microservice, outlining all CI/CD steps:
 
